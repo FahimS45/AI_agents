@@ -49,5 +49,3 @@ This dataset is converted into a vector store to enable **hybrid RAG** (retrieve
 
 ---
 
-## 📂 Project Structure
-
