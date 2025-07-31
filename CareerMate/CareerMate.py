@@ -1,4 +1,3 @@
-
 import os
 import json
 import asyncio
@@ -12,8 +11,9 @@ from agents import (
     Agent, OpenAIChatCompletionsModel, Runner, function_tool, 
     RunContextWrapper, InputGuardrailTripwireTriggered
 )
-from rag_tools.rag_skills import get_required_skills_with_rag  # RAG Skill Extraction
-from rag_tools.rag_jobs import find_jobs_with_rag              # RAG Job Finder
+# Assuming these are the corrected files from previous conversations
+from rag_tools.rag_skills import get_required_skills_with_rag  
+from rag_tools.rag_jobs import find_jobs_with_rag             
 
 # Load environment variables
 load_dotenv()
@@ -38,7 +38,7 @@ class JobListing(BaseModel):
     location: str
     requirements: List[str]
     description: str
-    Contact: str
+    contact: str  # Standardized to lowercase 'contact'
 
 class CourseRecommendation(BaseModel):
     skill: str
@@ -50,8 +50,8 @@ class UserContext:
     current_skills: List[str] = None
     target_job: Optional[str] = None
     preferred_location: Optional[str] = None
-    involvement: Optional[str] = None           # "full-time" / "part-time"
-    work_type: Optional[str] = None             # "remote" / "on-site" / "hybrid"
+    involvement: Optional[str] = None      # "full-time" / "part-time"
+    work_type: Optional[str] = None        # "remote" / "on-site" / "hybrid"
     missing_skills: List[str] = None
     session_start: datetime = None
 
@@ -66,19 +66,24 @@ class UserContext:
 # ----------------------------- TOOLS -----------------------------
 
 @function_tool
-def get_required_skills_for_job(wrapper: RunContextWrapper[UserContext], job_title: str) -> SkillGapResult:
+async def get_required_skills_for_job(wrapper: RunContextWrapper[UserContext], job_title: str) -> SkillGapResult:
     """Extract missing skills using the RAG system given a job title and current skills."""
     current_skills = wrapper.context.current_skills
-    result = get_required_skills_with_rag(job_title=job_title)
-    # Compare with current_skills
-    result.missing_skills = [skill for skill in result.missing_skills if skill not in current_skills]
-    wrapper.context.missing_skills = result.missing_skills
-    return result
+    # CRITICAL FIX: 'await' is required here because get_required_skills_with_rag is an async function
+    required_skills_result = await get_required_skills_with_rag(job_title=job_title)
+    
+    # Compare with current_skills to find missing ones
+    required_skills = required_skills_result.missing_skills
+    missing_skills = [skill for skill in required_skills if skill not in current_skills]
+    
+    wrapper.context.missing_skills = missing_skills
+    return SkillGapResult(missing_skills=missing_skills)
 
 @function_tool
-def find_matching_jobs(wrapper: RunContextWrapper[UserContext]) -> List[JobListing]:
+async def find_matching_jobs(wrapper: RunContextWrapper[UserContext]) -> List[JobListing]:
     """Search for jobs using the RAG system based on skills, location, work type, and involvement."""
-    return find_jobs_with_rag(
+    # CRITICAL FIX: 'await' is required here because find_jobs_with_rag is an async function
+    return await find_jobs_with_rag(
         skills=wrapper.context.current_skills,
         location=wrapper.context.preferred_location,
         involvement=wrapper.context.involvement,
@@ -149,16 +154,19 @@ job_finder_agent = Agent[UserContext](
     instructions="""
     You find job openings using a RAG-based retrieval system.
     Match user's current skills, location, involvement, and work type.
-    user's preferences are available in the context, including current skills, and work type.
-    Use `find_matching_jobs` and return top 3 jobs in structured format.
-    
-    Always explain the reasoning behind your recommendations.
-    
-    Format your response in a clear, organized way with details.
+    User's preferences are available in the context. Use the `find_matching_jobs` tool.
+
+    Once you receive the list of jobs from the tool:
+    - If the list is empty, respond politely by saying no jobs were found for the current criteria. Suggest broadening the search by changing the location, involvement, or work type.
+    - If jobs are found, present them in a clear, organized, and conversational manner.
+    - Use a numbered list for the jobs. For each job, include the Title, Company, Location, and a brief description.
+    - Always provide a concluding sentence to maintain a helpful tone.
+
+    Do not return the raw list of JobListing objects. Format your final response as a string.
     """,
     tools=[find_matching_jobs],
     model=OpenAIChatCompletionsModel(model=MODEL_NAME, openai_client=client),
-    output_type=List[JobListing]
+    output_type=str  # Changed to string for conversational output
 )
 
 course_recommender_agent = Agent[UserContext](
@@ -166,11 +174,18 @@ course_recommender_agent = Agent[UserContext](
     handoff_description="Specialist agent for finding online courses for user's missing skills.",
     instructions="""
     You suggest online courses for the user's missing skills.
-    Use the `recommend_courses` tool.
+    Use the `recommend_courses` tool to get the data.
+
+    Once you receive the course recommendations from the tool:
+    - Format the recommendations in a clear and conversational manner.
+    - Use a bullet-point list for the courses under each skill.
+    - If a skill has no recommended courses, state that politely.
+
+    Do not return the raw list of CourseRecommendation objects. Format your final response as a string.
     """,
     tools=[recommend_courses],
     model=OpenAIChatCompletionsModel(model=MODEL_NAME, openai_client=client),
-    output_type=List[CourseRecommendation]
+    output_type=str # Changed to string for conversational output
 )
 
 skill_gap_agent = Agent[UserContext](
@@ -180,27 +195,30 @@ skill_gap_agent = Agent[UserContext](
     You help users identify what skills they need to qualify for a target job.
     Use the tool `get_required_skills_for_job`.
     
-    After showing missing skills, ask:
+    After you receive the list of missing skills from the tool, present them to the user in a friendly, conversational manner.
+    Then, ask the user the following two questions to guide the conversation:
     - "Would you like me to recommend courses for these skills?"
     - "Or shall I find matching jobs based on your current skills?"
-    Then hand off accordingly.
+    
+    Do not return the raw list of skills. Format your response as a complete message.
     """,
     tools=[get_required_skills_for_job],
-    model=OpenAIChatCompletionsModel(model=MODEL_NAME, openai_client=client),
-    output_type=SkillGapResult,
+    # IMPORTANT: The output_type of the agent should be a string, not the pydantic model
+    # The agent's job is to convert the pydantic model into a string.
+    output_type=str, 
     handoffs=[course_recommender_agent, job_finder_agent] 
 )
 
 conversation_agent = Agent[UserContext](
     name="Conversation Agent",
     instructions="""
-    You are the main controller. You name is CareerMate. Always address yourself with this name.
-    Route user queries to:
-    - Skill Gap Agent → for job-related goals or if asked what skills are required for a specific job or want to become something related to IT, software, data, analysis, AI, game, programming, computer science and technology industry, etc. 
-    - Job Finder Agent → If specifically asked for assistance in find a particular job in a particular job related to IT, software, data, analysis, AI, game, programming, computer science and technology industry, etc.
-    - Course Recommender Agent → for learning resources
-
-    If query is related to technology or IT Engineering, handle it directly. You can have Computer Science and Technology related conversation with the user.
+    You are the main controller. Your name is CareerMate. Always address yourself with this name.
+    Your main goal is to route user queries to the appropriate specialist agent.
+    - Skill Gap Agent: For job-related goals, or if asked what skills are required for a specific job.
+    - Job Finder Agent: For requests to find jobs based on user's skills and preferences.
+    - Course Recommender Agent: For requests for learning resources or courses.
+    
+    If a query doesn't fit a specific tool, handle it directly. For example, you can have a general conversation about computer science and technology.
     """,
     model=OpenAIChatCompletionsModel(model=MODEL_NAME, openai_client=client),
     handoffs=[skill_gap_agent, job_finder_agent, course_recommender_agent]
@@ -211,7 +229,7 @@ conversation_agent = Agent[UserContext](
 async def main():
     user_context = UserContext(
         user_id="user456",
-        current_skills=["Python", "Excel"],
+        current_skills=["Python", "SQL", "Machine Learning"],
         target_job="data scientist",
         preferred_location="Delhi",
         involvement="full-time",
@@ -226,15 +244,13 @@ async def main():
     ]
 
     for query in queries:
-        print("\n" + "="*60)
-        print(f"QUERY: {query}")
-        print("="*60)
+        print(f"User: {query}")
         try:
             result = await Runner.run(conversation_agent, query, context=user_context)
-            print("\nRESPONSE:")
-            print(result.final_output)
+            print(f"CareerMate: {result.final_output}")
         except InputGuardrailTripwireTriggered:
-            print("\n⚠️ GUARDRAIL TRIGGERED ⚠️")
+            print("CareerMate: ⚠️ GUARDRAIL TRIGGERED ⚠️")
+        print("-" * 60) # Use a simple separator
 
 if __name__ == "__main__":
     asyncio.run(main())

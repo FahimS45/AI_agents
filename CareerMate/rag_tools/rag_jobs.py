@@ -1,18 +1,18 @@
 # rag_tools/rag_jobs.py
 
-from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain.chains import RetrievalQA
-from langchain_core.runnables import Runnable
-from langchain.schema import BaseRetriever
+from langchain.prompts import ChatPromptTemplate
 from langchain_core.documents import Document
+from langchain.schema import BaseRetriever
 from openai import AsyncOpenAI
 from typing import List, Optional
 from pydantic import BaseModel
-from agents import function_tool
-
 from rag_tools.setup_vectorstore import hybrid_retriever
 from rag_tools.llm_loader import llm
 
+# NEW IMPORTS
+from langchain.chains.combine_documents import create_stuff_documents_chain
+from langchain.chains.retrieval import create_retrieval_chain
+from agents import function_tool
 
 # ---------------- Prompt ----------------
 
@@ -32,8 +32,7 @@ qa_prompt_for_jobs = ChatPromptTemplate.from_messages([
      "   - Description: ...\n\n"
      "   - Contact information: (include only if available...)\n\n"
      "Context:\n{context}"),
-    MessagesPlaceholder("chat_history"),
-    ("user", "{input}"),
+    ("user", "{input}")
 ])
 
 # ---------------- Output Schema ----------------
@@ -45,7 +44,6 @@ class JobListing(BaseModel):
     requirements: List[str]
     description: str
     contact: Optional[str] = None
-    
 
 # ---------------- RAG Job Search Tool ----------------
 
@@ -57,9 +55,9 @@ async def find_jobs_with_rag(
     work_type: Optional[str] = None
 ) -> List[JobListing]:
     """
-    Use RAG to search job listings that match the user's skills, location, involvement (e.g. full-time), and work type (e.g. remote).
+    Use RAG to search job listings that match the user's skills, location, involvement, and work type.
     """
-    # Construct natural language query
+    # Build a natural language query
     query_parts = [f"Find jobs requiring: {', '.join(skills)}."]
     if location:
         query_parts.append(f"Location: {location}.")
@@ -69,16 +67,27 @@ async def find_jobs_with_rag(
         query_parts.append(f"Work type: {work_type}.")
     query = " ".join(query_parts)
 
-    retriever_chain = RetrievalQA.from_chain_type(
-        llm=llm,
-        retriever=hybrid_retriever,
-        chain_type="stuff",
-        chain_type_kwargs={"prompt": qa_prompt_for_jobs}
-    )
+    # --- REPLACED RetrievalQA with modern create_retrieval_chain pattern ---
+    
+    # 1. Create a chain to combine the documents into a single prompt
+    #    This part knows about the {context} and {input} placeholders
+    document_chain = create_stuff_documents_chain(llm, qa_prompt_for_jobs)
+    
+    # 2. Create the full RAG chain that first retrieves documents, then passes them
+    #    to the document_chain. This chain expects the input key "input".
+    rag_chain = create_retrieval_chain(hybrid_retriever, document_chain)
 
-    response = await retriever_chain.ainvoke({"query": query})
-    raw_result = response["result"]
+    # Invoke the chain using the input key "input"
+    response = await rag_chain.ainvoke({"input": query})
+    
+    # --- End of replacement ---
 
+    # The response object is slightly different.
+    # The result is now in response["answer"]
+    raw_result = response["answer"]
+    
+    # ... The rest of your code remains the same ...
+    
     # Parse result into structured list
     job_blocks = raw_result.split("\n\n")
     job_list = []
@@ -95,17 +104,34 @@ async def find_jobs_with_rag(
             type_line = lines[1].replace("Type:", "").strip()
             involvement_str, work_type_str = [s.strip() for s in type_line.split(",")]
             requirements_line = lines[2].replace("Requirements:", "").strip()
-            description = " ".join(line.strip() for line in lines[3:]).replace("Description:", "").strip()
+            description = ""
+            contact = None
+
+            # Collect description and contact lines from the rest of lines (3 onward)
+            for line in lines[3:]:
+                line = line.strip()
+                if line.lower().startswith("description:"):
+                    # Remove "Description:" and add text to description
+                    description += line[len("Description:"):].strip() + " "
+                elif line.lower().startswith("contact information:"):
+                    # Remove label and assign contact info
+                    contact = line[len("Contact information:"):].strip()
+                else:
+                    # If other lines exist, consider them part of description as well
+                    description += line + " "
+
+            description = description.strip()
+
             job_list.append(JobListing(
                 title=title_part,
                 company=company,
                 location=location,
                 requirements=[r.strip() for r in requirements_line.split(",")],
-                description=description
+                description=description,
+                contact=contact
             ))
         except Exception:
             continue
 
     return job_list[:3]
 
-print("✅ Loaded successfully!")

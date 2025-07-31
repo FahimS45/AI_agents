@@ -27,5 +27,3 @@ llm = ChatOpenAI(
     temperature=0.3,
    streaming=False
 )
-
-print("✅ llm is loaded successfully!")
