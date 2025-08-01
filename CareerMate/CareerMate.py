@@ -13,7 +13,10 @@ from agents import (
 )
 # Assuming these are the corrected files from previous conversations
 from rag_tools.rag_skills import get_required_skills_with_rag  
-from rag_tools.rag_jobs import find_jobs_with_rag             
+from rag_tools.rag_jobs import find_jobs_with_rag
+from rag_tools.rag_skills import SkillGapResult 
+from rag_tools.rag_jobs import JobListing
+
 
 # Load environment variables
 load_dotenv()
@@ -28,17 +31,6 @@ if not BASE_URL or not API_KEY or not MODEL_NAME:
 client = AsyncOpenAI(base_url=BASE_URL, api_key=API_KEY)
 
 # ----------------------------- MODELS -----------------------------
-
-class SkillGapResult(BaseModel):
-    missing_skills: List[str]
-
-class JobListing(BaseModel):
-    title: str
-    company: str
-    location: str
-    requirements: List[str]
-    description: str
-    contact: str  # Standardized to lowercase 'contact'
 
 class CourseRecommendation(BaseModel):
     skill: str
@@ -66,9 +58,16 @@ class UserContext:
 # ----------------------------- TOOLS -----------------------------
 
 @function_tool
-async def get_required_skills_for_job(wrapper: RunContextWrapper[UserContext], job_title: str) -> SkillGapResult:
+async def get_required_skills_for_job(wrapper: RunContextWrapper[UserContext]) -> SkillGapResult:
     """Extract missing skills using the RAG system given a job title and current skills."""
     current_skills = wrapper.context.current_skills
+    job_title = wrapper.context.target_job
+
+    # Check if a target job is available in the context
+    if not job_title:
+        # Handle the case where no target job is set
+        return SkillGapResult(missing_skills=[])
+
     # CRITICAL FIX: 'await' is required here because get_required_skills_with_rag is an async function
     required_skills_result = await get_required_skills_with_rag(job_title=job_title)
     
@@ -77,7 +76,8 @@ async def get_required_skills_for_job(wrapper: RunContextWrapper[UserContext], j
     missing_skills = [skill for skill in required_skills if skill not in current_skills]
     
     wrapper.context.missing_skills = missing_skills
-    return SkillGapResult(missing_skills=missing_skills)
+    return missing_skills
+
 
 @function_tool
 async def find_matching_jobs(wrapper: RunContextWrapper[UserContext]) -> List[JobListing]:
@@ -203,9 +203,10 @@ skill_gap_agent = Agent[UserContext](
     Do not return the raw list of skills. Format your response as a complete message.
     """,
     tools=[get_required_skills_for_job],
+    model=OpenAIChatCompletionsModel(model=MODEL_NAME, openai_client=client),
     # IMPORTANT: The output_type of the agent should be a string, not the pydantic model
     # The agent's job is to convert the pydantic model into a string.
-    output_type=str, 
+    output_type=str,
     handoffs=[course_recommender_agent, job_finder_agent] 
 )
 
@@ -230,17 +231,18 @@ async def main():
     user_context = UserContext(
         user_id="user456",
         current_skills=["Python", "SQL", "Machine Learning"],
-        target_job="data scientist",
+        target_job="Data Analyst",
         preferred_location="Delhi",
         involvement="full-time",
         work_type="remote"
     )
 
     queries = [
-        "I want to be a data scientist",
-        "Can you help me find jobs?",
-        "How do I learn SQL and Pandas?",
-        "What is deep learning?"
+        #"I want to be a Game Developer",
+        "Find me a job."
+        #"What extra skills do I need to become a Data Analyst?"
+        #"How do I learn SQL and Pandas?",
+        #"What is deep learning?"
     ]
 
     for query in queries:
