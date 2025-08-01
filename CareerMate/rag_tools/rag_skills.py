@@ -25,6 +25,11 @@ qa_prompt_for_skills = ChatPromptTemplate.from_messages([
     ("system",
      "You are a helpful assistant for extracting technical job skills from job descriptions.\n"
      "Given the following context, extract and list the key required skills for the job title below.\n"
+     "For example: from 'Proficiency in data analysis tools such as SQL, R, and Python' extract only SQL, R, Python"
+     "Another example: from 'Knowledge of databases (e.g., Ms Excel, Google Sheets, SQL, Hadoop, MS Access)' extract only Ms Excel, Google Sheets, SQL, Hadoop, MS Access"
+     "Another example: from 'Familiarity with Machine Learning / AI & Big Data' extract only Machine Learning, AI, Big Data"
+     "Another example: from 'Data visualization tools (e.g., Power BI, Tableau)' extract only Power BI, Tableau"
+     "Remember: Always try to extract the softwares or programming languages or tools, do not extract the whole domain like 'Database development and implementation' or 'Business requirements gathering', etc."
      "- Use only the content in the context.\n"
      "- Return a bullet-point list of skills only.\n"
      "- Do NOT make up any skill not explicitly mentioned.\n\n"
@@ -38,7 +43,7 @@ class SkillGapResult(BaseModel):
     missing_skills: List[str]
 
 # --- RAG Skill Extraction Tool ---
-@function_tool
+
 async def get_required_skills_with_rag(job_title: str) -> SkillGapResult:
     """
     Use RAG to extract required skills for a given job title from real job postings.

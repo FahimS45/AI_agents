@@ -26,7 +26,7 @@ qa_prompt_for_jobs = ChatPromptTemplate.from_messages([
      "- Work type (e.g. remote, on-site, hybrid)\n\n"
      "Only use the job information from the context. Do NOT invent job titles or details.\n\n"
      "Format the output like:\n"
-     "1. **Job Title** at Company (Location)\n"
+     "1. **Job Title** at (Company name) (Location)\n"
      "   - Type: [Full-time/Part-time], [Remote/On-site/Hybrid]\n"
      "   - Requirements: [...]\n"
      "   - Description: ...\n\n"
@@ -47,9 +47,9 @@ class JobListing(BaseModel):
 
 # ---------------- RAG Job Search Tool ----------------
 
-@function_tool
 async def find_jobs_with_rag(
     skills: List[str],
+    job_title: Optional[str] = None,
     location: Optional[str] = None,
     involvement: Optional[str] = None,
     work_type: Optional[str] = None
@@ -59,6 +59,8 @@ async def find_jobs_with_rag(
     """
     # Build a natural language query
     query_parts = [f"Find jobs requiring: {', '.join(skills)}."]
+    if job_title:
+        query_parts.append(f"Job title: {job_title}.")    
     if location:
         query_parts.append(f"Location: {location}.")
     if involvement:
@@ -80,10 +82,6 @@ async def find_jobs_with_rag(
     # Invoke the chain using the input key "input"
     response = await rag_chain.ainvoke({"input": query})
     
-    # --- End of replacement ---
-
-    # The response object is slightly different.
-    # The result is now in response["answer"]
     raw_result = response["answer"]
     
     # ... The rest of your code remains the same ...
