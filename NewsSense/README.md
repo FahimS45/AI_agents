@@ -122,8 +122,6 @@ This project simulates a **conversational news assistant** with specialized agen
    pip install -r requirements.txt
    ```
 
-4. **Add your OpenAI key**
-
    * In `.env` or as a variable:
 
      ```bash
@@ -155,6 +153,7 @@ project/
 ├── main.py
 └── README.md
 ```
+
 
 
 
