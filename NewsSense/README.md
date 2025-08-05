@@ -154,6 +154,78 @@ project/
 └── README.md
 ```
 
+## 🧪 Example Outputs
+
+Below are some example conversations and how the AI News Intelligence Agent (`NewsSense`) responds to different types of queries:
+
+---
+
+### 🗨️ **Query:** Hi!
+
+```
+✅ FINAL RESPONSE:
+
+Hello! How can I assist you today? Are you looking for trending news, fact-checking a claim, or a summary of a news article?
+```
+
+---
+
+### 🗨️ **Query:** What are trending news in Data Science today?
+
+```
+✅ FINAL RESPONSE:
+
+📰 CATEGORY: Data science  
+📢 Headlines:
+  1. Data Science: Interdisciplinary field combining statistics, computing, and domain expertise  
+  2. Data Science integrates methods to analyze noisy and unstructured data  
+  3. Recognized as a 'fourth paradigm' of science driven by data and IT impact  
+  4. Data scientists blend programming and statistics to summarize and extract insights  
+  5. Data science: Multidisciplinary approach critical for business decision-making  
+  6. Growing demand for skilled data scientists as career opportunities expand
+```
+
+---
+
+### 🗨️ **Query:** Humans are going to live in MARS one day!
+
+```
+✅ FINAL RESPONSE:
+
+🧾 VERDICT: Likely True
+
+🧠 SUMMARY:
+Multiple sources indicate that humans are planning and developing technologies with the goal of living on Mars one day. NASA and other organizations like SpaceX have active programs and missions aimed at sending humans to Mars in the coming decades, with aspirations to establish a human presence on the planet. While the exact timeline remains uncertain, the scientific consensus and space agencies involved believe it is feasible that humans will live on Mars in the future.
+
+🔗 SOURCES:
+  1. https://scienceandspacenews.com/2025/01/21/when-will-humans-go-to-mars/
+  2. https://abcnews.go.com/US/nasa-hopes-send-astronauts-mars-2030s/story?id=111859633
+  3. https://www.sciencenewstoday.org/will-humans-ever-live-on-mars
+```
+
+---
+
+### 🗨️ **Query:** Summarize this article:
+
+> *Artificial Intelligence is no longer a support function—it’s evolving into a core component of how software is created. Two of the world’s biggest tech companies, Meta and Microsoft, are leading the charge in reshaping software development through AI...*
+
+```
+✅ FINAL RESPONSE:
+
+🗞️ Summary of Article
+
+📌 Bullet Points:
+  1. AI is becoming a central part of software development, moving beyond just a support tool to a co-developer role.  
+  2. Meta and Microsoft are leading this change, with AI writing significant portions of code and handling tasks like debugging and testing.  
+  3. AI helps speed up development by allowing engineers to focus more on reviewing and designing rather than writing every line of code.  
+  4. Microsoft reports that AI now writes a large share of their code, while Meta expects AI to produce half of its engineering work soon.  
+  5. This shift enables faster innovation, more experimentation, and quicker responses to market needs.
+```
+
+---
+
+
+
 
 
 
