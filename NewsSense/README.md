@@ -1,7 +1,3 @@
-Sure! Here's a professional and informative `README.md` for your GitHub repository:
-
----
-
 # 🧠 NewsSense: AI-Powered News Intelligence Agents
 
 **NewsSense** is a multi-agent system that uses Large Language Models (LLMs) to intelligently **fetch, verify, and summarize news** using real-time web data and prompt-driven agent reasoning.
@@ -159,6 +155,7 @@ project/
 ├── main.py
 └── README.md
 ```
+
 
 
 
