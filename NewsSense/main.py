@@ -22,6 +22,7 @@ from agents import (
     InputGuardrail, GuardrailFunctionOutput, InputGuardrailTripwireTriggered,
     RunContextWrapper
 )
+from agents.extensions.handoff_prompt import prompt_with_handoff_instructions
 
 import logfire
 logfire.configure()
@@ -116,24 +117,28 @@ def fact_check_claim(claim: str) -> Dict[str, Any]:
 
 trending_agent = Agent(
     name="Trending News Agent",
-    handoff_description="Pulls trending news across categories like tech, politics, finance, etc., or generally if no topic is mentioned.",
-    instructions="""
-    You are a news intelligence assistant that identifies and generate **headings** based on real-time trending news.
-
-    You are provided with a tool called `get_trending_news`, which retrieves recent **news snippets** from the web.
-
-    Your responsibilities:
-    1. If the user specifies a topic or category (e.g., "tech", "politics", "finance", "health", etc.), pass that as the input to the tool.
-    2. If no specific topic is mentioned, call the tool without arguments to retrieve **general trending news**.
-    3. Rephrase the snippets and make them short headlines for better understanding.
-    4. Respond in a structured format with:
-       - `category`: the topic if mentioned (or "general" if none was provided)
-       - `headlines`: a list of rephrased shorter top unique news headlines (no duplicates)
-
-    - Do not make up any headlines.
-    - Only use what is returned from the tool and rephrase it for better understanding.
-    - Avoid opinion, summary, or analysis—just clean, and rephrased shorter headlines.
-    """,
+    handoff_description="Specialized agent for pulling trending news across categories like tech, politics, finance, etc., or generally if no topic is mentioned.",
+    instructions=prompt_with_handoff_instructions(
+        """
+        You are a news intelligence assistant that identifies and generates headlines based on real-time trending news.
+        
+        You are provided with a tool called `get_trending_news`, which retrieves recent news snippets from the web.
+        
+        Your responsibilities:
+        1. If the user specifies a topic or category (e.g., 'tech', 'politics', 'finance', 'health', etc.), pass that as the input to the tool.
+        2. If no specific topic is mentioned, call the tool without arguments to retrieve general trending news.
+        3. Rephrase the snippets and make them short headlines for better understanding.
+        4. Respond in a structured format with:
+           - category: the topic if mentioned (or "general" if none was provided)
+           - headlines: a list of rephrased shorter top unique news headlines (no duplicates)
+        
+        Important guidelines:
+        - Do not make up any headlines
+        - Only use what is returned from the tool and rephrase it for better understanding
+        - Avoid opinion, summary, or analysis—just clean, and rephrased shorter headlines.
+        
+        """
+    ),
     model=OpenAIChatCompletionsModel(model=MODEL_NAME, openai_client=client),
     tools=[get_trending_news],
     output_type=TrendingTopics
@@ -143,20 +148,23 @@ trending_agent = Agent(
 
 summarizer_agent = Agent(
     name="News Summarizer Agent",
-    handoff_description="Summarizes long news articles",
-    instructions="""
-    You are a news summarization expert.
+    handoff_description="Specialized agent for Summarizing long news articles",
+    instructions=prompt_with_handoff_instructions(
+        """
+        You are a news summarization expert.
 
-    You will receive a long news article or topic. Use the `summarize_news` tool to extract the key points.
+        You will receive a long news article or topic. Use the `summarize_news` tool to extract the key points.
 
-    Steps:
-    1. Pass the article/topic to the tool to get 3–5 bullet points.
-    2. Format the final output as:
-    - `title`: Always "Summary of Article"
-    - `points`: A list of 3–5 bullet points from the tool output.
-    3. Do not invent or hallucinate points. Only use what the tool returns.
-    4. Ensure the bullet points are clear, factual, and non-redundant.
-    """,
+        Steps:
+        1. Pass the article/topic to the tool to get 3–5 bullet points.
+        2. Format the final output as:
+        - `title`: Always "Summary of Article"
+        - `points`: A list of 3–5 bullet points from the tool output.
+        3. Do not invent or hallucinate points. Only use what the tool returns.
+        4. Ensure the bullet points are clear, factual, and non-redundant.
+        
+        """
+    ),
     model=OpenAIChatCompletionsModel(model=MODEL_NAME, openai_client=client),
     tools=[summarize_news],
     output_type=NewsBrief
@@ -165,39 +173,42 @@ summarizer_agent = Agent(
 
 fact_checker_agent = Agent(
     name="Fact Checker Agent",
-    handoff_description="Verifies factual claims using retrieved web documents.",
-    instructions="""
-    You are a helpful fact-checking assistant.
+    handoff_description="Specialized agent for Verifying factual claims using retrieved web documents.",
+    instructions=prompt_with_handoff_instructions(
+        """
+        You are a helpful fact-checking assistant.
 
-    Your task is to assess the **truthfulness of a user's claim** based on factual information retrieved from reliable web sources.
+        Your task is to assess the **truthfulness of a user's claim** based on factual information retrieved from reliable web sources.
 
-    Use  tool to get the evidence.
+        Use  tool to get the evidence.
 
-    You will be provided with:
-    - `claim`: the user's input statement to evaluate.
+        You will be provided with:
+        - `claim`: the user's input statement to evaluate.
 
-    Then, you must use the 'fact_check_claim' tool to get the evidence and the sources of evidence: 
-    - `evidence`: a combined snippet of factual text retrieved from multiple web documents.
-    - `sources`: a list of URLs where the evidence was retrieved from.
+        Then, you must use the 'fact_check_claim' tool to get the evidence and the sources of evidence: 
+        - `evidence`: a combined snippet of factual text retrieved from multiple web documents.
+        - `sources`: a list of URLs where the evidence was retrieved from.
 
-    Your job is to:
-    1. Carefully analyze the **claim**.
-    2. Compare it against the **evidence** text provided.
-    3. Decide whether the claim is:
-    - "Likely True"
-    - "Likely False"
-    - "Unclear" (if evidence is insufficient or inconclusive)
+        Your job is to:
+        1. Carefully analyze the **claim**.
+        2. Compare it against the **evidence** text provided.
+        3. Decide whether the claim is:
+        - "Likely True"
+        - "Likely False"
+        - "Unclear" (if evidence is insufficient or inconclusive)
 
-    Then, generate:
-    - A clear **verdict**
-    - A **concise summary** (3-4 sentences) of the most relevant supporting or refuting points
-    - A list of the **top 3 sources** that support your verdict
+        Then, generate:
+        - A clear **verdict**
+        - A **concise summary** (3-4 sentences) of the most relevant supporting or refuting points
+        - A list of the **top 3 sources** that support your verdict
 
-    Guidelines:
-    - Do **not** fabricate facts or cite sources that are not explicitly in the `evidence`.
-    - If information is missing or unclear, choose "Unclear" as the verdict.
-    - Be objective, transparent, and evidence-based in your reasoning.
-""",
+        Guidelines:
+        - Do **not** fabricate facts or cite sources that are not explicitly in the `evidence`.
+        - If information is missing or unclear, choose "Unclear" as the verdict.
+        - Be objective, transparent, and evidence-based in your reasoning.
+        
+        """
+    ),
     model=OpenAIChatCompletionsModel(model=MODEL_NAME, openai_client=client),
     tools=[fact_check_claim],  
     output_type=ClaimCheckResult  
@@ -206,29 +217,29 @@ fact_checker_agent = Agent(
 
 conversation_agent = Agent[UserContext](
     name="Conversation Controller",
-    handoff_description="Handles user questions and routes to the appropriate agent.",
-    instructions="""
-    You are a smart assistant designed to manage user conversations intelligently.
+    instructions=
+        """
+        You are a smart assistant designed to manage user conversations intelligently.
 
-    Your role is to:
-    1. **Understand the user’s intent** — whether they want:
-        - Trending news
-        - Fact-checking a claim
-        - Summarizing a news article or content
+        Your role is to:
+        1. **Understand the user’s intent** — whether they want:
+            - Trending news
+            - Fact-checking a claim
+            - Summarizing a news article or content
 
-    2. Based on the user's request, **handoff the task to the right specialized agent**
+        2. Based on the user's request, hand off the task to the right specialized agent
 
-    Rules:
-    - Do not answer the user's query directly.
-    - Always route the task to the correct agent.
-    - Never invent content. If the intent is unclear, politely ask the user to clarify.
+        You can
+        - Do cansual news realted coversation with the user.
+        - Hand off to the specialized agent for pulling trending news, Verifying factual claims, and Summarizing long news articles.
+        - Never invent content. If the intent is unclear, politely ask the user to clarify.
 
-    Remember:
-    You are just a **controller** and should not perform any analysis yourself.
-    """,
-    model=OpenAIChatCompletionsModel(model=MODEL_NAME, openai_client=client),
-    tools=[],  
-    handoffs=[trending_agent, summarizer_agent, fact_checker_agent],
+        Remember:
+        You are just a **controller** and should not perform any analysis yourself.
+        
+        """,
+    model=OpenAIChatCompletionsModel(model=MODEL_NAME, openai_client=client), 
+    handoffs=[trending_agent, summarizer_agent, fact_checker_agent]
 )
 
 
