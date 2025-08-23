@@ -3,10 +3,10 @@
 import os
 import asyncio
 from ddgs import DDGS
-from datetime import datetime
 from typing import List, Optional, Dict, Any
-from dataclasses import dataclass
 from pydantic import BaseModel, Field
+from dataclasses import dataclass
+from datetime import datetime
 from dotenv import load_dotenv
 from openai import AsyncOpenAI
 from llm_loader import llm
@@ -52,6 +52,7 @@ class UserContext:
     def __post_init__(self):
         if self.session_start is None:
             self.session_start = datetime.now()
+
 
 # --- Tools ---
 
