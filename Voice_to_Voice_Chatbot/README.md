@@ -25,7 +25,7 @@ The system uses a sophisticated multiagent architecture with three specialized a
 ### AI Models Used
 - **Speech-to-Text**: OpenAI Whisper Base (`openai/whisper-base`)
 - **Text-to-Speech**: Coqui TTS Tacotron2-DDC (`tts_models/en/ljspeech/tacotron2-DDC_ph`)
-- **LLM Backend**: Configurable via environment variables ('openai/gpt-4.1-mini')
+- **LLM Backend**: Configurable via environment variables (`openai/gpt-4.1-mini`)
 
 ### Key Libraries
 - **Agent Framework**: Custom agents framework with handoff capabilities
@@ -237,5 +237,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 **Tested Environment**: NVIDIA GeForce RTX 3070 Ti (8GB VRAM) | Python 3.9+ | CUDA 11.8+
+
 
 
