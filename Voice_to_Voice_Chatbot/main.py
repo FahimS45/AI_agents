@@ -14,9 +14,10 @@ import torch
 import time
 import threading
 from agents import Runner
+from datetime import datetime
 
 from stt_tts_loader import stt_model, processor, tts_model, device
-from multiagent import conversation_agent, UserContext
+from multiagent import conversation_agent, UserContext, format_for_voice
 
 
 class VoiceInteractionManager:
@@ -116,15 +117,32 @@ class VoiceInteractionManager:
         try:
             print(f"🤔 Processing: '{user_input}'")
             
+            # Add user input to history FIRST so agent can see previous conversations
+            user_context.conversation_history.append({
+                "timestamp": datetime.now().isoformat(),
+                "user": user_input,
+                "assistant": ""  # Will be filled after agent responds
+            })
+            
             result = await Runner.run(conversation_agent, user_input, context=user_context)
             
-            # Extract response text
+            # Extract response - handle both structured and regular outputs
             if hasattr(result, "final_output"):
-                response_text = result.final_output
+                raw_response = result.final_output
             else:
-                response_text = str(result)
+                raw_response = result
             
-            return response_text
+            # Format the response for voice output
+            formatted_response = format_for_voice(raw_response)
+            
+            # Update the last entry with the actual response
+            user_context.conversation_history[-1]["assistant"] = formatted_response
+            
+            # Keep only last 3 interactions
+            if len(user_context.conversation_history) > 3:
+                user_context.conversation_history = user_context.conversation_history[-3:]
+            
+            return formatted_response
             
         except Exception as e:
             print(f"❌ Agent processing error: {e}")
@@ -133,7 +151,11 @@ class VoiceInteractionManager:
     def speak_response(self, text):
         """Convert text to speech and play it"""
         try:
-            print(f"🔊 Speaking: '{text[:100]}...'")
+            # Truncate very long responses for better user experience
+            if len(text) > 500:
+                text = text[:450] + "... I can provide more details if you'd like."
+            
+            print(f"🔊 Speaking: '{text[:100]}{'...' if len(text) > 100 else ''}'")
             
             # Set flag to prevent recording during TTS playback
             self.is_playing_response = True
@@ -151,6 +173,8 @@ class VoiceInteractionManager:
             
         except Exception as e:
             print(f"❌ TTS error: {e}")
+            # Fallback: at least print the text
+            print(f"📢 Text response: {text}")
         finally:
             self.is_playing_response = False
     
@@ -162,16 +186,16 @@ class VoiceInteractionManager:
             self.mic_stream.close()
 
 
-# --- Automatic voice loop ---
+# --- Automatic voice loop with improved conversation handling ---
 
 async def automatic_voice_loop():
     """Automatic mode with progressive timeout - eventually gives up"""
     
-    voice_manager = VoiceInteractionManager(chunk_duration=3.0)
+    voice_manager = VoiceInteractionManager(chunk_duration=5.0)
     user_context = UserContext(user_id="user001")
     
     print("🎙️ Automatic Voice Mode with Smart Timeout")
-    voice_manager.speak_response("Hello! I'm listening. I'll automatically pause if you're quiet for too long.")
+    voice_manager.speak_response("Hello! I'm your AI assistant. I can help you with trending news, fact-checking, and general conversation. What would you like to talk about?")
     
     # Timeout configuration
     consecutive_empty = 0
@@ -201,8 +225,8 @@ async def automatic_voice_loop():
                     
                     # Check for exit
                     if any(phrase in transcription.lower() for phrase in 
-                          ['stop listening', 'goodbye', 'quit', 'exit']):
-                        voice_manager.speak_response("Goodbye! Have a nice day!")
+                          ['stop listening', 'goodbye', 'quit', 'exit', 'shut down']):
+                        voice_manager.speak_response("It was great chatting with you! Have a wonderful day!")
                         break
                     
                     # Process and respond
@@ -211,7 +235,7 @@ async def automatic_voice_loop():
                     )
                     
                     if response_text:
-                        print(f"🤖 Agent: '{response_text}'")
+                        print(f"🤖 Agent: '{response_text[:100]}{'...' if len(response_text) > 100 else ''}'")
                         voice_manager.speak_response(response_text)
                         await asyncio.sleep(1)  # Brief pause before listening again
                 
@@ -242,10 +266,15 @@ async def automatic_voice_loop():
                             pause_count += 1
                             
                             print(f"😴 Pausing for {pause_duration} seconds... (Pause {pause_count}/{max_pauses})")
-                            voice_manager.speak_response(
-                                f"I'll wait a bit longer. Say something when you're ready, "
-                                f"or say 'stop listening' to exit."
-                            )
+                            
+                            # More natural pause messages
+                            pause_messages = [
+                                "I'm still here when you're ready to continue our conversation.",
+                                "Take your time. I'll wait a bit longer for you.",
+                                "Still listening. Let me know if you need anything, or say 'stop listening' to exit."
+                            ]
+                            pause_msg = pause_messages[min(pause_count-1, len(pause_messages)-1)]
+                            voice_manager.speak_response(pause_msg)
                             
                             await asyncio.sleep(pause_duration)
             
@@ -268,7 +297,7 @@ async def enter_sleep_mode(voice_manager, user_context):
     print("💤 Entering sleep mode...")
     print("Say 'wake up', 'hello', or 'hey assistant' to wake me up")
     
-    wake_words = ['wake up', 'hello', 'hey assistant', 'are you there']
+    wake_words = ['wake up', 'hello', 'hey assistant', 'are you there', 'wake']
     sleep_check_interval = 5  # Check every 5 seconds
     
     while True:
@@ -289,7 +318,7 @@ async def enter_sleep_mode(voice_manager, user_context):
                     if any(wake_word in transcription_lower for wake_word in wake_words):
                         print("🌅 Waking up!")
                         voice_manager.speak_response(
-                            "Good, you're back! I'm awake and ready to help."
+                            "Hello again! I'm back and ready to continue our conversation. What would you like to talk about?"
                         )
                         
                         # Return to normal operation

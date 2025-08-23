@@ -3,7 +3,7 @@
 import os
 import asyncio
 from ddgs import DDGS
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Union
 from pydantic import BaseModel, Field
 from dataclasses import dataclass
 from datetime import datetime
@@ -18,10 +18,6 @@ from agents import (
     RunContextWrapper
 )
 from agents.extensions.handoff_prompt import prompt_with_handoff_instructions
-
-#import logfire
-#logfire.configure()
-#logfire.instrument_openai_agents()
 
 load_dotenv()
 
@@ -48,10 +44,40 @@ class TrendingTopics(BaseModel):
 class UserContext:
     user_id: str
     session_start: datetime = None
+    conversation_history: List[Dict[str, str]] = None
 
     def __post_init__(self):
         if self.session_start is None:
             self.session_start = datetime.now()
+        if self.conversation_history is None:
+            self.conversation_history = []
+
+
+# --- Voice Formatting Function ---
+
+def format_for_voice(agent_output: Any) -> str:
+    """Convert structured output to natural speakable sentences for TTS model"""
+    if isinstance(agent_output, TrendingTopics):
+        category_text = agent_output.category if agent_output.category != "general" else ""
+        intro = f"Here are the top {category_text} news headlines: " if category_text else "Here are the top trending news headlines: "
+        
+        # Format all headlines naturally for speech
+        headlines_text = ". ".join(agent_output.headlines)
+        
+        return intro + headlines_text
+    
+    elif isinstance(agent_output, ClaimCheckResult):
+        verdict_intro = {
+            "Likely True": "Based on my research, this claim appears to be true.",
+            "Likely False": "Based on my research, this claim appears to be false.",
+            "Unclear": "I couldn't find enough reliable evidence to verify this claim."
+        }.get(agent_output.verdict, f"My verdict is: {agent_output.verdict}")
+        
+        return f"{verdict_intro} {agent_output.summary}"
+    
+    else:
+        # Handle regular string responses
+        return str(agent_output)
 
 
 # --- Tools ---
@@ -87,7 +113,7 @@ def fact_check_claim(claim: str) -> Dict[str, Any]:
 
 trending_agent = Agent(
     name="Trending News Agent",
-    handoff_description="Specialized agent for pulling trending news across categories like tech, politics, finance, etc., or generally if no topic is mentioned.",
+    handoff_description="Specialized agent for pulling trending news across categories like tech, politics, finance, data science, AI, etc., or generally if no topic is mentioned.",
     instructions=prompt_with_handoff_instructions(
         """
         You are a news intelligence assistant that identifies and generates headlines based on real-time trending news.
@@ -95,9 +121,9 @@ trending_agent = Agent(
         You are provided with a tool called `get_trending_news`, which retrieves recent news snippets from the web.
         
         Your responsibilities:
-        1. If the user specifies a topic or category (e.g., 'tech', 'politics', 'finance', 'health', etc.), pass that as the input to the tool.
+        1. If the user specifies a topic or category (e.g., 'tech', 'politics', 'finance', 'health', 'data science', 'AI', etc.), pass that as the input to the tool.
         2. If no specific topic is mentioned, call the tool without arguments to retrieve general trending news.
-        3. Rephrase the snippets and make them short headlines for better understanding.
+        3. Rephrase the snippets and make them short, clear headlines for better understanding.
         4. Respond in a structured format with:
            - category: the topic if mentioned (or "general" if none was provided)
            - headlines: a list of rephrased shorter top unique news headlines (no duplicates)
@@ -105,6 +131,7 @@ trending_agent = Agent(
         Important guidelines:
         - Do not make up any headlines
         - Only use what is returned from the tool and rephrase it for better understanding
+        - Keep headlines concise and informative
         - Avoid opinion, summary, or analysis—just clean, and rephrased shorter headlines.
         
         """
@@ -116,14 +143,14 @@ trending_agent = Agent(
 
 fact_checker_agent = Agent(
     name="Fact Checker Agent",
-    handoff_description="Specialized agent for Verifying factual claims using retrieved web documents.",
+    handoff_description="Specialized agent for verifying factual claims, statements, or when user asks to check if something is true/false.",
     instructions=prompt_with_handoff_instructions(
         """
         You are a helpful fact-checking assistant.
 
         Your task is to assess the **truthfulness of a user's claim** based on factual information retrieved from reliable web sources.
 
-        Use  tool to get the evidence.
+        Use the fact_check_claim tool to get the evidence.
 
         You will be provided with:
         - `claim`: the user's input statement to evaluate.
@@ -149,6 +176,7 @@ fact_checker_agent = Agent(
         - Do **not** fabricate facts or cite sources that are not explicitly in the `evidence`.
         - If information is missing or unclear, choose "Unclear" as the verdict.
         - Be objective, transparent, and evidence-based in your reasoning.
+        - Keep your summary conversational and easy to understand when spoken aloud.
         
         """
     ),
@@ -162,23 +190,35 @@ conversation_agent = Agent[UserContext](
     name="Conversation Controller",
     instructions=
         """
-        You are a smart assistant designed to manage user conversations intelligently.
+        You are a smart and friendly AI assistant designed to have natural conversations with users while intelligently routing specialized tasks to expert agents.
 
         Your role is to:
-        1. **Understand the user’s intent** — whether they want:
-            - Trending news
-            - Fact-checking a claim
+        1. **Engage in natural conversation** - Be conversational, helpful, and engaging
+        2. **Understand user intent** and determine when to hand off tasks:
+            - For **trending news requests**: Hand off to Trending News Agent
+            - For **fact-checking, claim verification, or "is it true that..."** questions: Hand off to Fact Checker Agent
+        3. **Handle follow-up questions** naturally by referencing previous conversation context
+        4. **Maintain conversation flow** - Keep track of what was discussed before
 
-        2. Based on the user's request, hand off the task to the right specialized agent
+        **When to hand off:**
+        - News requests: "latest news", "trending topics", "what's happening in [topic]", "news about [subject]"
+        - Fact-checking: "is it true that...", "can you verify...", "fact-check this", "is this correct", statements that sound like claims to be verified
 
-        You can
-        - Do cansual news realted coversation with the user.
-        - Hand off to the specialized agent for pulling trending news, and verifying factual claims.
-        - Never invent content. If the intent is unclear, politely ask the user to clarify.
+        **Conversation guidelines:**
+        - Be warm, natural, and conversational
+        - Reference previous parts of the conversation when relevant
+        - Ask clarifying questions if user intent is unclear
+        - For general questions, provide helpful responses without handoffs
+        - Keep responses concise but informative
+        - Remember the conversation context and build upon it
 
-        Remember:
-        You are just a **controller** and should not perform any analysis yourself.
+        **Important:**
+        - You are the main conversation controller - users will primarily interact with you
+        - Only hand off specific tasks (news/fact-checking) to specialist agents
+        - For everything else, have a natural conversation
+        - Never mention technical details about agents or handoffs to the user
         
+        Recent conversation context is available in your context. Use it to maintain continuity and handle follow-ups naturally.
         """,
     model=OpenAIChatCompletionsModel(model=MODEL_NAME, openai_client=client), 
     handoffs=[trending_agent, fact_checker_agent]
