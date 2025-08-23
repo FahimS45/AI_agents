@@ -25,7 +25,7 @@ The system uses a sophisticated multiagent architecture with three specialized a
 ### AI Models Used
 - **Speech-to-Text**: OpenAI Whisper Base (`openai/whisper-base`)
 - **Text-to-Speech**: Coqui TTS Tacotron2-DDC (`tts_models/en/ljspeech/tacotron2-DDC_ph`)
-- **LLM Backend**: Configurable via environment variables (supports OpenAI-compatible APIs)
+- **LLM Backend**: Configurable via environment variables ('openai/gpt-4.1-mini')
 
 ### Key Libraries
 - **Agent Framework**: Custom agents framework with handoff capabilities
@@ -53,8 +53,8 @@ nvcc --version
 ### Installation
 1. **Clone the repository**
 ```bash
-git clone https://github.com/yourusername/multiagent-voice-ai.git
-cd multiagent-voice-ai
+git clone https://github.com/FahimS45/AI_agents/Voice_to_Voice_Chatbot.git
+cd Voice_to_Voice_Chatbot
 ```
 
 2. **Install dependencies**
@@ -105,7 +105,7 @@ The system automatically enters sleep mode after periods of inactivity:
 ### Audio Settings
 ```python
 # In VoiceInteractionManager
-chunk_duration = 3.0  # Recording chunk duration in seconds
+chunk_duration = 5.0  # Recording chunk duration in seconds
 samplerate = 16000     # Audio sample rate
 channels = 1           # Mono audio
 ```
@@ -237,4 +237,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 **Tested Environment**: NVIDIA GeForce RTX 3070 Ti (8GB VRAM) | Python 3.9+ | CUDA 11.8+
+
 
