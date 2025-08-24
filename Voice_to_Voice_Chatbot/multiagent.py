@@ -1,5 +1,3 @@
-# multiagent.py
-
 import os
 import asyncio
 from ddgs import DDGS
@@ -51,6 +49,17 @@ class UserContext:
             self.session_start = datetime.now()
         if self.conversation_history is None:
             self.conversation_history = []
+    
+    def add_to_history(self, user_input: str, agent_response: str):
+        """Add interaction to conversation history"""
+        self.conversation_history.append({
+            "timestamp": datetime.now().isoformat(),
+            "user": user_input,
+            "assistant": agent_response
+        })
+        # Keep only last 3 interactions to prevent context overflow and reduce costs
+        if len(self.conversation_history) > 3:
+            self.conversation_history = self.conversation_history[-3:]
 
 
 # --- Voice Formatting Function ---
@@ -80,22 +89,64 @@ def format_for_voice(agent_output: Any) -> str:
         return str(agent_output)
 
 
-# --- Tools ---
+# --- Tools with caching for uniqueness ---
+
+# Global cache to store previously fetched news
+_news_cache = {}
 
 @function_tool
-def get_trending_news(topic: Optional[str] = None) -> List[str]:
-    """Fetch trending news snippets. If a topic is provided, fetch news on that topic; otherwise, fetch general trending news."""
+def get_trending_news(topic: Optional[str] = None, get_more: bool = False) -> List[str]:
+    """
+    Fetch trending news snippets. 
+    If a topic is provided, fetch news on that topic; otherwise, fetch general trending news.
+    If get_more is True, fetch additional unique results beyond previously shown ones.
+    """
     query = topic if topic else "latest news"
-    results = []
-
+    cache_key = query.lower()
+    
+    # Initialize cache for this topic if not exists
+    if cache_key not in _news_cache:
+        _news_cache[cache_key] = {
+            'shown_snippets': set(),
+            'all_snippets': [],
+            'last_fetch': None
+        }
+    
+    cache_entry = _news_cache[cache_key]
+    
+    # Fetch more results if requesting more details or cache is empty
+    max_results = 20 if get_more or not cache_entry['all_snippets'] else 10
+    
     with DDGS() as ddgs:
-        for result in ddgs.text(query, max_results=10):
+        fresh_results = []
+        for result in ddgs.text(query, max_results=max_results):
             if "body" in result:
                 snippet = result["body"].strip()
-                if snippet and snippet not in results:  # Avoid duplicates
-                    results.append(snippet)
-
-    return results[:5]
+                if snippet and snippet not in cache_entry['shown_snippets']:
+                    fresh_results.append(snippet)
+        
+        # Add new unique snippets to cache
+        for snippet in fresh_results:
+            if snippet not in cache_entry['all_snippets']:
+                cache_entry['all_snippets'].append(snippet)
+    
+    # Get results that haven't been shown yet
+    if get_more:
+        # Return next batch of unseen results
+        unseen_results = [
+            snippet for snippet in cache_entry['all_snippets'] 
+            if snippet not in cache_entry['shown_snippets']
+        ]
+        results_to_show = unseen_results[:5]
+    else:
+        # Return first batch of results
+        results_to_show = cache_entry['all_snippets'][:5]
+    
+    # Mark these results as shown
+    for snippet in results_to_show:
+        cache_entry['shown_snippets'].add(snippet)
+    
+    return results_to_show
 
 @function_tool
 def fact_check_claim(claim: str) -> Dict[str, Any]:
@@ -113,7 +164,7 @@ def fact_check_claim(claim: str) -> Dict[str, Any]:
 
 trending_agent = Agent(
     name="Trending News Agent",
-    handoff_description="Specialized agent for pulling trending news across categories like tech, politics, finance, data science, AI, etc., or generally if no topic is mentioned.",
+    handoff_description="Specialized agent for pulling trending news across categories like tech, politics, finance, data science, AI, etc., or generally if no topic is mentioned. Can also provide more details about previously shown news.",
     instructions=prompt_with_handoff_instructions(
         """
         You are a news intelligence assistant that identifies and generates headlines based on real-time trending news.
@@ -123,8 +174,9 @@ trending_agent = Agent(
         Your responsibilities:
         1. If the user specifies a topic or category (e.g., 'tech', 'politics', 'finance', 'health', 'data science', 'AI', etc.), pass that as the input to the tool.
         2. If no specific topic is mentioned, call the tool without arguments to retrieve general trending news.
-        3. Rephrase the snippets and make them short, clear headlines for better understanding.
-        4. Respond in a structured format with:
+        3. If the user asks for "more details", "tell me more", or follow-up questions about previously shown news, call the tool with get_more=True to fetch additional unique results.
+        4. Rephrase the snippets and make them short, clear headlines for better understanding.
+        5. Respond in a structured format with:
            - category: the topic if mentioned (or "general" if none was provided)
            - headlines: a list of rephrased shorter top unique news headlines (no duplicates)
         
@@ -133,6 +185,7 @@ trending_agent = Agent(
         - Only use what is returned from the tool and rephrase it for better understanding
         - Keep headlines concise and informative
         - Avoid opinion, summary, or analysis—just clean, and rephrased shorter headlines.
+        - When user asks for more details about a topic, use get_more=True to get fresh unique content
         
         """
     ),

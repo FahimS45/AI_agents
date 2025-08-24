@@ -117,14 +117,18 @@ class VoiceInteractionManager:
         try:
             print(f"🤔 Processing: '{user_input}'")
             
-            # Add user input to history FIRST so agent can see previous conversations
-            user_context.conversation_history.append({
-                "timestamp": datetime.now().isoformat(),
-                "user": user_input,
-                "assistant": ""  # Will be filled after agent responds
-            })
+            # Format conversation history for the prompt (only completed conversations)
+            history_context = ""
+            if user_context.conversation_history:  # If there's any previous history
+                history_context = "\n\nPrevious conversation:\n"
+                for entry in user_context.conversation_history:
+                    if entry["assistant"]:  # Only include completed exchanges
+                        history_context += f"User: {entry['user']}\nAssistant: {entry['assistant']}\n\n"
             
-            result = await Runner.run(conversation_agent, user_input, context=user_context)
+            # Create enhanced input with context
+            enhanced_input = f"{user_input}{history_context}"
+            
+            result = await Runner.run(conversation_agent, enhanced_input, context=user_context)
             
             # Extract response - handle both structured and regular outputs
             if hasattr(result, "final_output"):
@@ -135,18 +139,15 @@ class VoiceInteractionManager:
             # Format the response for voice output
             formatted_response = format_for_voice(raw_response)
             
-            # Update the last entry with the actual response
-            user_context.conversation_history[-1]["assistant"] = formatted_response
-            
-            # Keep only last 3 interactions
-            if len(user_context.conversation_history) > 3:
-                user_context.conversation_history = user_context.conversation_history[-3:]
+            # Add to conversation history using the dataclass method
+            user_context.add_to_history(user_input, formatted_response)
             
             return formatted_response
             
         except Exception as e:
             print(f"❌ Agent processing error: {e}")
             return "Sorry, I encountered an error processing your request."
+            
     
     def speak_response(self, text):
         """Convert text to speech and play it"""
@@ -228,7 +229,7 @@ async def automatic_voice_loop():
                           ['stop listening', 'goodbye', 'quit', 'exit', 'shut down']):
                         voice_manager.speak_response("It was great chatting with you! Have a wonderful day!")
                         break
-                    
+
                     # Process and respond
                     response_text = await voice_manager.get_agent_response(
                         transcription, user_context
