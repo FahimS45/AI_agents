@@ -1,0 +1,694 @@
+{
+  "name": "Summarizer_",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "8eea811c-ba70-4f5a-8d33-765019d67bb0",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -336,
+        -16
+      ],
+      "id": "e256cd23-c0f2-4768-9931-d48907adb9f7",
+      "name": "Webhook",
+      "webhookId": "8eea811c-ba70-4f5a-8d33-765019d67bb0"
+    },
+    {
+      "parameters": {
+        "operation": "extract",
+        "urls": {
+          "items": [
+            {
+              "url": "={{ $json.body.article_url }}"
+            }
+          ]
+        },
+        "prompt": "Extract all the headings and the main body texts for all the sections as it is. Please do not generate a summary. Return them as it is from the blog post.",
+        "schema": "={\n  \"type\": \"object\",\n  \"required\": [],\n  \"properties\": {\n    \"headings\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"required\": [],\n        \"properties\": {}\n      }\n    },\n    \"body_text\": {\n      \"type\": \"string\"\n    }\n  }\n}",
+        "requestOptions": {}
+      },
+      "type": "@mendable/n8n-nodes-firecrawl.firecrawl",
+      "typeVersion": 1,
+      "position": [
+        -64,
+        -16
+      ],
+      "id": "65a56236-cc57-42cb-9e36-2079ca0a9123",
+      "name": "Extract",
+      "credentials": {
+        "firecrawlApi": {
+          "id": "05xmN5XBKVRLf574",
+          "name": "Firecrawl account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 10
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        352,
+        160
+      ],
+      "id": "999fae4b-d1e2-44e8-b6a8-f3b49801b409",
+      "name": "Wait",
+      "webhookId": "ad216543-27ac-42e9-be13-4a0709a9ddde"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        880,
+        496
+      ],
+      "id": "115f6910-8d7c-404a-b560-f439002b79d1",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "hIzS4cpntrAFXE7L",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chunkOverlap": 200,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [
+        1024,
+        544
+      ],
+      "id": "2a7adb82-19a3-465a-8f55-60380d9af660",
+      "name": "Recursive Character Text Splitter"
+    },
+    {
+      "parameters": {
+        "content": "## Extraction \n**Double click** to edit me. [Guide](https://docs.n8n.io/workflows/sticky-notes/)",
+        "height": 528,
+        "width": 736
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -144,
+        -128
+      ],
+      "typeVersion": 1,
+      "id": "cb696661-fdeb-4404-b39d-3fe6ddb20c97",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "url": "=https://api.firecrawl.dev/v2/extract/{{$('Extract').item.json.id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        144,
+        -16
+      ],
+      "id": "7fd8ee57-ecd3-4421-a1cb-79c8e8088235",
+      "name": "Poll",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "ZNfsjM19HogBlFfs",
+          "name": "Firecrawl"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1136,
+        160
+      ],
+      "id": "a124427f-c5d5-4b82-af9f-4296baf46119",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Awoyq8yQV7CvjKOF",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "text": "={{ $json.Blog }}",
+        "attributes": {
+          "attributes": [
+            {
+              "name": "Insights",
+              "description": "Extract 3–5 key insights from the given text, focusing only on mentions of artificial intelligence (AI), its tools, and their practical applications.  \nEach insight should be a short, clear bullet point highlighting important AI-related tools, technologies, or real-world use cases.  \nDo not include general background or unrelated details.   \n"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1.2,
+      "position": [
+        1136,
+        -32
+      ],
+      "id": "bdc667e2-2093-4039-8569-d5c3a533b227",
+      "name": "Insight generator"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1312,
+        288
+      ],
+      "id": "1a43890d-5948-47f7-91de-6a25d4aecc10",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "chunkingMode": "advanced",
+        "options": {
+          "summarizationMethodAndPrompts": {
+            "values": {
+              "summarizationMethod": "stuff",
+              "prompt": "Summarize the following text into 3–5 clear and concise sentences:\n\n\n\"{text}\"\n\n\nSUMMARY (3–5 sentences):\n"
+            }
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainSummarization",
+      "typeVersion": 2.1,
+      "position": [
+        880,
+        304
+      ],
+      "id": "30127040-3323-4217-b219-58b134b30aa4",
+      "name": "Summarizer"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.Email }}",
+        "subject": "Your Summary and Insights",
+        "emailType": "text",
+        "message": "=Hello,  \n\nHere is the summary of the article you submitted:\n\n **{{ $json.Summary }}**\n\nAnd the key insights: \n\n**{{ $json.Insights }}**\n\nThank you for using our service.   \nIf you’d like to analyze more articles, feel free to submit them anytime.    \n\nBest regards,   \nYour Article Insights Team",
+        "options": {
+          "appendAttribution": false,
+          "senderName": "Summarizer"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1728,
+        288
+      ],
+      "id": "ce7637d0-2cc5-4834-8f63-66b06c7bc506",
+      "name": "Send_email_to_user",
+      "webhookId": "860d9b65-2021-4804-b3f4-20204c1d3367",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "W5sozBrw0t9GtWNT",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1Euc8jmr65YCPDdIWgmuxPvIHOhLqOuq9uUqK4Y75yh4",
+          "mode": "list",
+          "cachedResultName": "n8n_automation_project",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Euc8jmr65YCPDdIWgmuxPvIHOhLqOuq9uUqK4Y75yh4/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1Euc8jmr65YCPDdIWgmuxPvIHOhLqOuq9uUqK4Y75yh4/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Session ID": "={{ $('Webhook').item.json.body.session_id }}",
+            "Article URL": "={{ $('Webhook').item.json.body.article_url }}",
+            "Email": "={{ $('Webhook').item.json.body.email }}",
+            "Summary": "={{ $json.output.text }}",
+            "Insights": "={{ $json.output.Insights }}"
+          },
+          "matchingColumns": [
+            "Session ID"
+          ],
+          "schema": [
+            {
+              "id": "Session ID",
+              "displayName": "Session ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Article URL",
+              "displayName": "Article URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Summary",
+              "displayName": "Summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Insights",
+              "displayName": "Insights",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1520,
+        288
+      ],
+      "id": "7aaca787-9a24-4380-b5c1-42c0cf844bfb",
+      "name": "Append_rows_in_sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "LcMmvHQYc6ztuezA",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0ef059c7-e2d7-433c-89e2-85b6d5a849d6",
+              "name": "Blog",
+              "value": "={{ $json.data.body_text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        880,
+        -32
+      ],
+      "id": "68e54437-1652-4252-8ef5-fdf176eccd98",
+      "name": "Edit_fields"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "8e7afee0-2bd9-41c5-8a66-cf35d7c6aef9",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "=completed",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        352,
+        -16
+      ],
+      "id": "cb14cd75-b62f-4bdf-a935-1aa4787f620e",
+      "name": "Is_completed?"
+    },
+    {
+      "parameters": {
+        "content": "## Summarization and insights generation \n**Double click** to edit me. [Guide](https://docs.n8n.io/workflows/sticky-notes/)",
+        "height": 864,
+        "width": 1232
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        736,
+        -144
+      ],
+      "typeVersion": 1,
+      "id": "72f47e35-01db-4dfb-a349-2a70048c7dd0",
+      "name": "Sticky Note1"
+    }
+  ],
+  "pinData": {
+    "Poll": [
+      {
+        "json": {
+          "success": true,
+          "data": {
+            "headings": [
+              {
+                "title": "How business leaders are using AI to make data-driven decisions",
+                "content": "Intuition alone is no longer enough for effective leadership in the modern business world. Business leaders increasingly rely on data to guide strategic decisions.\n\nResearch by KPMG shows that embracing technology in business-related matters can lead to productivity gains. In fact, businesses that invest in data and analytics notice a performance or profitability increase of around 11 percent.\n\nEstimates show that 402.74 million terabytes of data are generated each day. Business leaders who harness this data effectively gain a competitive edge, driving growth and innovation. Of course, the sheer volume of data can often overwhelm even the most experienced executives and leaders.\n\nUnder such circumstances, for many leaders, AI has become a partner in making smarter, faster, and more accurate decisions. Here’s how."
+              },
+              {
+                "title": "Transforming strategy with AI",
+                "content": "Business leaders today face a market that changes daily. Consumer behaviors shift, supply chains get disrupted, and competitors move quickly. Without technology, keeping up feels impossible.\n\nOne powerful use of AI is in predictive analytics. Leaders can anticipate sales trends, forecast demand, and spot risks before they become major problems.\n\nThis forward-looking approach allows them to stay one step ahead. AI guides strategies and also helps leaders test different scenarios before committing to a direction."
+              },
+              {
+                "title": "AI in business intelligence",
+                "content": "Business intelligence has always been about turning data into meaningful action. Traditional tools like spreadsheets and dashboards worked for a time.\n\nHowever, today’s businesses collect too much data for these methods to handle alone. AI has supercharged business intelligence by automating data collection, identifying patterns, and presenting insights in ways leaders can actually use. Virtual assistants are also playing a key role in this transformation, helping businesses automate repetitive tasks and make data-driven decisions more efficiently.\n\nLeaders who want to harness AI-driven business intelligence need specialized knowledge. A doctor of business administration program can provide that depth. Many business leaders now pursue DBA degrees online to enhance their decision-making abilities while working full-time jobs. Such online programs allow top executives and business leaders the flexibility they need to learn while carrying on with their usual workload.\n\nAs Marymount University notes, through a comprehensive online DBA program, participants deepen their understanding of business studies and advanced business practices. Programs that focus on business intelligence are ideal for leaders who want to become data-driven decision makers."
+              },
+              {
+                "title": "Improving customer understanding",
+                "content": "Every business claims to be customer-focused, but true understanding requires more than surveys and sales data. AI tools for e-commerce businesses can analyze social media posts, customer feedback, and browsing behaviors to uncover hidden preferences, allowing businesses to tailor their offerings in ways that truly resonate with their audience.\n\nLeaders can then shape products, services, and campaigns around what people actually want rather than what they assume.\n\nFor example, AI-powered sentiment analysis lets leaders see how customers feel about a brand in real time. If a sudden wave of negative feedback appears, they can respond immediately.\n\nLeaders are finding that using AI to understand their customers deeply gives them a competitive advantage that is hard to match."
+              },
+              {
+                "title": "Streamlining operations",
+                "content": "Behind every strong strategy lies efficient operations. AI plays a key role in making operations smoother and less prone to human error. Whether it is supply chain management, logistics, or inventory control, AI helps leaders make decisions that cut waste and improve performance.\n\nConsider supply chains. Disruptions in shipping, labor, or raw materials can cost companies millions. AI tools can monitor thousands of variables across global markets and alert leaders when trouble is brewing. Instead of reacting after the damage is done, leaders can act early to protect their business. That kind of foresight gives them resilience in uncertain times."
+              },
+              {
+                "title": "Building a data-driven culture",
+                "content": "For AI to truly reshape decision-making, it must be more than a tool at the top. Leaders are fostering data-driven cultures where employees at all levels use insights in their daily work. This culture makes organizations more agile and responsive because decisions no longer depend solely on hierarchy.\n\nLeaders who embrace AI set an example. They show that data-driven decision-making is not just a buzzword but a daily practice. As employees see the benefits, they grow more comfortable trusting data alongside their own judgment. Over time, this cultural shift makes companies stronger and more adaptable."
+              },
+              {
+                "title": "Frequently asked questions",
+                "content": ""
+              },
+              {
+                "title": "How does AI-driven business intelligence work?",
+                "content": "AI-driven business intelligence works by collecting and analyzing massive amounts of structured and unstructured data from various sources. Unlike traditional methods, AI processes data much faster and continuously learns, allowing businesses to make more accurate, real-time decisions."
+              },
+              {
+                "title": "Can AI create customer personas?",
+                "content": "Yes, AI can create customer personas by analyzing demographics, browsing behaviors, purchase history, and even social media interactions. Instead of relying solely on surveys, AI clusters data into patterns that reflect different customer types."
+              },
+              {
+                "title": "What can AI do to help streamline the data analysis process for businesses?",
+                "content": "AI can instantly highlight anomalies, predict outcomes, and identify key performance drivers without human bias. By simplifying complex datasets into clear dashboards and insights, AI saves time and enables teams to focus on strategy rather than manual number-crunching."
+              },
+              {
+                "title": "Conclusion",
+                "content": "AI has become one of the most powerful allies for business leaders. It enhances business intelligence, sharpens strategy, and uncovers opportunities hidden in complex data.\n\nThe future of leadership will not be defined by instinct alone but by the ability to merge human insight with AI-driven knowledge. As leaders continue to harness AI, they are shaping a business world where decisions are smarter and also more human-centered."
+              }
+            ],
+            "body_text": "{\n  \"title\": \"How business leaders are using AI to make data-driven decisions\",\n  \"author\": \"Edward Nick\",\n  \"date\": \"September 10, 2025\",\n  \"sections\": [\n    {\n      \"heading\": \"How business leaders are using AI to make data-driven decisions\",\n      \"body\": \"Intuition alone is no longer enough for effective leadership in the modern business world. Business leaders increasingly rely on data to guide strategic decisions. Research by KPMG shows that embracing technology in business-related matters can lead to productivity gains. In fact, businesses that invest in data and analytics notice a performance or profitability increase of around 11 percent. Estimates show that 402.74 million terabytes of data are generated each day. Business leaders who harness this data effectively gain a competitive edge, driving growth and innovation. Of course, the sheer volume of data can often overwhelm even the most experienced executives and leaders. Under such circumstances, for many leaders, AI has become a partner in making smarter, faster, and more accurate decisions. Here’s how.\"\n    },\n    {\n      \"heading\": \"Transforming strategy with AI\",\n      \"body\": \"Business leaders today face a market that changes daily. Consumer behaviors shift, supply chains get disrupted, and competitors move quickly. Without technology, keeping up feels impossible. One powerful use of AI is in predictive analytics. Leaders can anticipate sales trends, forecast demand, and spot risks before they become major problems. This forward-looking approach allows them to stay one step ahead. AI guides strategies and also helps leaders test different scenarios before committing to a direction.\"\n    },\n    {\n      \"heading\": \"AI in business intelligence\",\n      \"body\": \"Business intelligence has always been about turning data into meaningful action. Traditional tools like spreadsheets and dashboards worked for a time. However, today’s businesses collect too much data for these methods to handle alone. AI has supercharged business intelligence by automating data collection, identifying patterns, and presenting insights in ways leaders can actually use. Virtual assistants are also playing a key role in this transformation, helping businesses automate repetitive tasks and make data-driven decisions more efficiently. Leaders who want to harness AI-driven business intelligence need specialized knowledge. A doctor of business administration program can provide that depth. Many business leaders now pursue DBA degrees online to enhance their decision-making abilities while working full-time jobs. Such online programs allow top executives and business leaders the flexibility they need to learn while carrying on with their usual workload. As Marymount University notes, through a comprehensive online DBA program, participants deepen their understanding of business studies and advanced business practices. Programs that focus on business intelligence are ideal for leaders who want to become data-driven decision makers.\"\n    },\n    {\n      \"heading\": \"Improving customer understanding\",\n      \"body\": \"Every business claims to be customer-focused, but true understanding requires more than surveys and sales data. AI tools for e-commerce businesses can analyze social media posts, customer feedback, and browsing behaviors to uncover hidden preferences, allowing businesses to tailor their offerings in ways that truly resonate with their audience. Leaders can then shape products, services, and campaigns around what people actually want rather than what they assume. For example, AI-powered sentiment analysis lets leaders see how customers feel about a brand in real time. If a sudden wave of negative feedback appears, they can respond immediately. Leaders are finding that using AI to understand their customers deeply gives them a competitive advantage that is hard to match.\"\n    },\n    {\n      \"heading\": \"Streamlining operations\",\n      \"body\": \"Behind every strong strategy lies efficient operations. AI plays a key role in making operations smoother and less prone to human error. Whether it is supply chain management, logistics, or inventory control, AI helps leaders make decisions that cut waste and improve performance. Consider supply chains. Disruptions in shipping, labor, or raw materials can cost companies millions. AI tools can monitor thousands of variables across global markets and alert leaders when trouble is brewing. Instead of reacting after the damage is done, leaders can act early to protect their business. That kind of foresight gives them resilience in uncertain times.\"\n    },\n    {\n      \"heading\": \"Building a data-driven culture\",\n      \"body\": \"For AI to truly reshape decision-making, it must be more than a tool at the top. Leaders are fostering data-driven cultures where employees at all levels use insights in their daily work. This culture makes organizations more agile and responsive because decisions no longer depend solely on hierarchy. Leaders who embrace AI set an example. They show that data-driven decision-making is not just a buzzword but a daily practice. As employees see the benefits, they grow more comfortable trusting data alongside their own judgment. Over time, this cultural shift makes companies stronger and more adaptable.\"\n    },\n    {\n      \"heading\": \"Frequently asked questions\",\n      \"body\": \"### How does AI-driven business intelligence work? AI-driven business intelligence works by collecting and analyzing massive amounts of structured and unstructured data from various sources. Unlike traditional methods, AI processes data much faster and continuously learns, allowing businesses to make more accurate, real-time decisions. ### Can AI create customer personas? Yes, AI can create customer personas by analyzing demographics, browsing behaviors, purchase history, and even social media interactions. Instead of relying solely on surveys, AI clusters data into patterns that reflect different customer types. ### What can AI do to help streamline the data analysis process for businesses? AI can instantly highlight anomalies, predict outcomes, and identify key performance drivers without human bias. By simplifying complex datasets into clear dashboards and insights, AI saves time and enables teams to focus on strategy rather than manual number-crunching.\"\n    }\n  ]\n}"
+          },
+          "status": "completed",
+          "expiresAt": "2025-09-15T01:12:53.000Z",
+          "tokensUsed": 3566
+        }
+      }
+    ],
+    "Insight generator": [
+      {
+        "json": {
+          "output": {
+            "Insights": "- AI empowers predictive analytics to anticipate sales trends, forecast demand, and proactively identify business risks.\n- In business intelligence, AI automates data collection, identifies patterns, and presents actionable insights, with virtual assistants streamlining repetitive tasks.\n- AI tools analyze customer feedback, social media, and browsing behaviors (e.g., sentiment analysis) to uncover preferences and tailor offerings.\n- AI streamlines operations by monitoring global variables to detect and predict disruptions in supply chain management, logistics, and inventory control.\n- AI simplifies data analysis by instantly highlighting anomalies, predicting outcomes, and identifying key performance drivers for clearer insights and dashboards."
+          }
+        }
+      }
+    ],
+    "Webhook": [
+      {
+        "json": {
+          "headers": {
+            "host": "fahim09.app.n8n.cloud",
+            "user-agent": "python-httpx/0.25.2",
+            "content-length": "207",
+            "accept": "*/*",
+            "accept-encoding": "gzip, br",
+            "cdn-loop": "cloudflare; loops=1; subreqs=1",
+            "cf-connecting-ip": "103.149.147.243",
+            "cf-ew-via": "15",
+            "cf-ipcountry": "BD",
+            "cf-ray": "97f29c06d341b252-DAC",
+            "cf-visitor": "{\"scheme\":\"https\"}",
+            "cf-worker": "n8n.cloud",
+            "content-type": "application/json",
+            "x-forwarded-for": "103.149.147.243, 172.68.132.158",
+            "x-forwarded-host": "fahim09.app.n8n.cloud",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "traefik-prod-users-gwc-89-8567ddc79c-c6tjf",
+            "x-is-trusted": "yes",
+            "x-real-ip": "103.149.147.243"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "email": "fahimskuet09@gmail.com",
+            "article_url": "https://www.datasciencecentral.com/how-business-leaders-are-using-ai-to-make-data-driven-decisions/",
+            "session_id": "a104210d-5e87-48e9-b62a-ee8037a4cb16"
+          },
+          "webhookUrl": "https://fahim09.app.n8n.cloud/webhook/8eea811c-ba70-4f5a-8d33-765019d67bb0",
+          "executionMode": "production"
+        }
+      }
+    ],
+    "Edit_fields": [
+      {
+        "json": {
+          "Blog": "{\n  \"title\": \"How business leaders are using AI to make data-driven decisions\",\n  \"author\": \"Edward Nick\",\n  \"date\": \"September 10, 2025\",\n  \"sections\": [\n    {\n      \"heading\": \"How business leaders are using AI to make data-driven decisions\",\n      \"body\": \"Intuition alone is no longer enough for effective leadership in the modern business world. Business leaders increasingly rely on data to guide strategic decisions. Research by KPMG shows that embracing technology in business-related matters can lead to productivity gains. In fact, businesses that invest in data and analytics notice a performance or profitability increase of around 11 percent. Estimates show that 402.74 million terabytes of data are generated each day. Business leaders who harness this data effectively gain a competitive edge, driving growth and innovation. Of course, the sheer volume of data can often overwhelm even the most experienced executives and leaders. Under such circumstances, for many leaders, AI has become a partner in making smarter, faster, and more accurate decisions. Here’s how.\"\n    },\n    {\n      \"heading\": \"Transforming strategy with AI\",\n      \"body\": \"Business leaders today face a market that changes daily. Consumer behaviors shift, supply chains get disrupted, and competitors move quickly. Without technology, keeping up feels impossible. One powerful use of AI is in predictive analytics. Leaders can anticipate sales trends, forecast demand, and spot risks before they become major problems. This forward-looking approach allows them to stay one step ahead. AI guides strategies and also helps leaders test different scenarios before committing to a direction.\"\n    },\n    {\n      \"heading\": \"AI in business intelligence\",\n      \"body\": \"Business intelligence has always been about turning data into meaningful action. Traditional tools like spreadsheets and dashboards worked for a time. However, today’s businesses collect too much data for these methods to handle alone. AI has supercharged business intelligence by automating data collection, identifying patterns, and presenting insights in ways leaders can actually use. Virtual assistants are also playing a key role in this transformation, helping businesses automate repetitive tasks and make data-driven decisions more efficiently. Leaders who want to harness AI-driven business intelligence need specialized knowledge. A doctor of business administration program can provide that depth. Many business leaders now pursue DBA degrees online to enhance their decision-making abilities while working full-time jobs. Such online programs allow top executives and business leaders the flexibility they need to learn while carrying on with their usual workload. As Marymount University notes, through a comprehensive online DBA program, participants deepen their understanding of business studies and advanced business practices. Programs that focus on business intelligence are ideal for leaders who want to become data-driven decision makers.\"\n    },\n    {\n      \"heading\": \"Improving customer understanding\",\n      \"body\": \"Every business claims to be customer-focused, but true understanding requires more than surveys and sales data. AI tools for e-commerce businesses can analyze social media posts, customer feedback, and browsing behaviors to uncover hidden preferences, allowing businesses to tailor their offerings in ways that truly resonate with their audience. Leaders can then shape products, services, and campaigns around what people actually want rather than what they assume. For example, AI-powered sentiment analysis lets leaders see how customers feel about a brand in real time. If a sudden wave of negative feedback appears, they can respond immediately. Leaders are finding that using AI to understand their customers deeply gives them a competitive advantage that is hard to match.\"\n    },\n    {\n      \"heading\": \"Streamlining operations\",\n      \"body\": \"Behind every strong strategy lies efficient operations. AI plays a key role in making operations smoother and less prone to human error. Whether it is supply chain management, logistics, or inventory control, AI helps leaders make decisions that cut waste and improve performance. Consider supply chains. Disruptions in shipping, labor, or raw materials can cost companies millions. AI tools can monitor thousands of variables across global markets and alert leaders when trouble is brewing. Instead of reacting after the damage is done, leaders can act early to protect their business. That kind of foresight gives them resilience in uncertain times.\"\n    },\n    {\n      \"heading\": \"Building a data-driven culture\",\n      \"body\": \"For AI to truly reshape decision-making, it must be more than a tool at the top. Leaders are fostering data-driven cultures where employees at all levels use insights in their daily work. This culture makes organizations more agile and responsive because decisions no longer depend solely on hierarchy. Leaders who embrace AI set an example. They show that data-driven decision-making is not just a buzzword but a daily practice. As employees see the benefits, they grow more comfortable trusting data alongside their own judgment. Over time, this cultural shift makes companies stronger and more adaptable.\"\n    },\n    {\n      \"heading\": \"Frequently asked questions\",\n      \"body\": \"### How does AI-driven business intelligence work? AI-driven business intelligence works by collecting and analyzing massive amounts of structured and unstructured data from various sources. Unlike traditional methods, AI processes data much faster and continuously learns, allowing businesses to make more accurate, real-time decisions. ### Can AI create customer personas? Yes, AI can create customer personas by analyzing demographics, browsing behaviors, purchase history, and even social media interactions. Instead of relying solely on surveys, AI clusters data into patterns that reflect different customer types. ### What can AI do to help streamline the data analysis process for businesses? AI can instantly highlight anomalies, predict outcomes, and identify key performance drivers without human bias. By simplifying complex datasets into clear dashboards and insights, AI saves time and enables teams to focus on strategy rather than manual number-crunching.\"\n    }\n  ]\n}"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Extract",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract": {
+      "main": [
+        [
+          {
+            "node": "Poll",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Poll",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Summarizer",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recursive Character Text Splitter": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Summarizer",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Poll": {
+      "main": [
+        [
+          {
+            "node": "Is_completed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Insight generator",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insight generator": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Append_rows_in_sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Summarizer": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Append_rows_in_sheet": {
+      "main": [
+        [
+          {
+            "node": "Send_email_to_user",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit_fields": {
+      "main": [
+        [
+          {
+            "node": "Summarizer",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Insight generator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is_completed?": {
+      "main": [
+        [
+          {
+            "node": "Edit_fields",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send_email_to_user": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "d871ffdd-79f9-4c35-85cd-f07470e8e26e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "3c285a070e9d19ad83302ab38f363178af09ef0f870cf21f4838c9f33e63ab22"
+  },
+  "id": "m15hdgquBnzYqgWh",
+  "tags": []
+}
