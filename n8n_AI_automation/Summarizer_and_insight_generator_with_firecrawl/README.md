@@ -1,7 +1,3 @@
-Got it 🚀 I’ll create you a professional **README.md** that documents your n8n project clearly, explains the stack (Lovable.dev frontend + FastAPI backend + Firecrawl extractor + n8n orchestration), and includes setup & workflow details.
-
-Here’s a solid draft:
-
 ---
 
 # 📄 Summarizer – AI-Powered Article Insights
@@ -148,4 +144,3 @@ MIT License © 2025 Fahim Shahriar
 
 ---
 
-Would you like me to also **draw a workflow diagram** (like a flowchart with Firecrawl → Summarizer → Insights → Email → Sheets) and include it in the README for clarity?
