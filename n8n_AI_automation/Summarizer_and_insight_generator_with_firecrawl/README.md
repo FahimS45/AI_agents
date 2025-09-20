@@ -78,8 +78,8 @@ It allows users to submit an article URL and receive:
 ### 1️⃣ Clone the repository
 
 ```bash
-git clone https://github.com/your-username/summarizer-n8n.git
-cd summarizer-n8n
+git clone https://github.com/FahimS45/AI_agents.git
+cd n8n_AI_automation/Summarizer_and_insight_generator_with_firecrawl
 ```
 
 ### 2️⃣ Setup Backend (FastAPI)
@@ -92,7 +92,7 @@ uvicorn main:app --reload
 
 ### 3️⃣ Setup n8n Workflow
 
-* Import `workflows/summarizer.json` into your n8n instance.
+* Import `workflows/Summarizer_.json` into your n8n instance.
 * Add credentials for:
 
   * Firecrawl API
@@ -123,6 +123,11 @@ And the key insights:
 - Enhances customer sentiment analysis and personalization.
 
 Thank you for using our service.
+
+If you’d like to analyze more articles, feel free to submit them anytime.
+
+Best regards,
+Your Article Insights Team
 ```
 
 ---
@@ -141,5 +146,6 @@ Thank you for using our service.
 MIT License © 2025 Fahim Shahriar
 
 ---
+
 
 
