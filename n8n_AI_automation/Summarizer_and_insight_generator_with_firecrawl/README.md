@@ -1,5 +1,3 @@
----
-
 # 📄 Summarizer – AI-Powered Article Insights
 
 This project is an **AI-driven article summarization and insights generator** built with:
@@ -143,4 +141,5 @@ Thank you for using our service.
 MIT License © 2025 Fahim Shahriar
 
 ---
+
 
