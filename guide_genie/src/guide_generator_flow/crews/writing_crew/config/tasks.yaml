@@ -1,0 +1,254 @@
+write_getting_started_guide:
+  description: >
+    Transform the comprehensive research report into a beginner-friendly
+    getting-started guide.
+
+    RESEARCH REPORT TO TRANSFORM INTO GUIDE: 
+    {research_report}
+
+    YOUR TASK:
+    Create a complete getting-started guide as a full HTML document following this EXACT structure:
+
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Getting Started with [Framework/Tool Name]</title>
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          line-height: 1.6;
+          color: #333;
+          max-width: 800px;
+          margin: 0 auto;
+          padding: 20px;
+          background-color: #f9f9f9;
+        }
+        h1 {
+          color: #2c3e50;
+          border-bottom: 2px solid #eee;
+          padding-bottom: 10px;
+        }
+        h2 {
+          color: #34495e;
+          margin-top: 40px;
+        }
+        p {
+          margin-bottom: 20px;
+        }
+        ul, ol {
+          margin-bottom: 20px;
+          padding-left: 20px;
+        }
+        li {
+          margin-bottom: 10px;
+        }
+        pre {
+          background-color: #f4f4f4;
+          border: 1px solid #ddd;
+          border-left: 5px solid #3498db;
+          padding: 15px;
+          overflow: auto;
+          font-family: monospace;
+          font-size: 14px;
+          line-height: 1.5;
+          margin: 20px 0;
+          border-radius: 5px;
+        }
+        code {
+          background-color: #f4f4f4;
+          padding: 2px 5px;
+          border-radius: 3px;
+          font-family: monospace;
+        }
+        .note {
+          background-color: #e7f3fe;
+          border-left: 5px solid #2196F3;
+          padding: 10px 15px;
+          margin: 20px 0;
+          border-radius: 5px;
+        }
+        @media (prefers-color-scheme: dark) {
+          body {
+            background-color: #121212;
+            color: #e0e0e0;
+          }
+          h1 {
+            color: #a8d1ff;
+            border-bottom: 2px solid #333;
+          }
+          h2 {
+            color: #90caf9;
+          }
+          pre {
+            background-color: #1e1e1e;
+            border: 1px solid #444;
+            border-left: 5px solid #64b5f6;
+          }
+          code {
+            background-color: #1e1e1e;
+          }
+          .note {
+            background-color: #0d47a1;
+            border-left: 5px solid #bbdefb;
+          }
+        }
+      </style>
+    </head>
+    <body>
+
+    <h1>Getting Started with [Framework/Tool Name]</h1>
+
+    <h2>Introduction</h2>
+      - Explain what this framework/tool is in 2-3 simple sentences.
+      - Why beginners should learn it. (benefits, use cases).
+      - What readers will learn by the end of this guide.
+
+    <h2>Prerequisites</h2>
+      - What knowledge is assumed (if any- explain technical terms).
+      - System Requirements (OS, Hardware)
+      - Software that needs to be installed first.
+
+    <h2>Installation and Setup</h2>
+      - Step by Step installation instructions.
+      - How to verify if installation is complete.
+      - Basic Configuration (if needed).
+
+    <h2>Core concepts</h2>
+      - 3-5 fundamental concepts beginners MUST understand.
+      - Explain each concept with simple analogies.
+      - Define all technical terminology.
+
+    <h2>Your First [Project/Example]</h2>
+      - A simple, practical example to get hands-on knowledge.
+      - Include complete code with line-by-line explanations.
+      - Show the expected output of the code.
+      - Explain what's happening at each step.
+
+    <h2>Common Patterns and Use cases</h2>
+      - 2-3 typical use cases beginners will encounter 
+      - When to use each pattern 
+      - Simple examples for each
+
+    <h2>Troubleshooting</h2>
+      - Top 5 errors beginners commonly face.
+      - How to fix each error (step-by-step).
+      - How to recognize these errors.
+
+    <h2>Next steps</h2>
+      - What to learn after mastering the basics.
+      - Recommended learning path.
+      - Links to next-level tutorials.
+
+    <h2>Additional Resources</h2>
+      - Links to official documentation.
+      - Community forums and support.
+      - Video tutorials (if mentioned in research)
+
+    </body>
+    </html>
+
+    CRITICAL WRITING GUIDELINES:
+
+    1. BEGINNER FRIENDLY MINDSET:
+      - Assume reader has ZERO experience with this tool. 
+      - Define every technical term before using it. 
+      - Use analogies to explain abstract concepts.
+
+    2. CLEAR STRUCTURE:
+      - Use HTML heading tags (<h1>, <h2>, etc.) properly.
+      - Include code blocks using <pre> and <code> tags with appropriate classes for syntax highlighting (e.g., class="language-python").
+      - Use <ul>, <ol>, and <li> tags for bullet points and numbered lists.
+      - Add emoji or visual markers for important notes, and use <div class="note"> for highlighted notes or tips.
+
+    3. PRACTICAL AND ACTIONABLE:
+      - Every section should have concrete examples.
+      - Core examples must be copy-paste ready.
+      - Include expected outputs where ever possible.
+
+    4. ENCOURAGING TONE: 
+      - Use "you" and "we" (friendly, not academic).
+      - Acknowledge that learning is a process.
+      - Celebrate small wins.
+
+    5. LENGTH:
+      - Aim for 3000-5000 words.
+      - Better be thorough than brief.
+      - Don't skip explanations to save space.
+
+    6. CONTENT FOCUS:
+      - Do not include any concluding statements, offers for further help, or instructions about saving files or preparing repositories. Only include the well-written framework-related content as specified in the structure.
+
+  expected_output: >
+    A complete getting-started guide in HTML format (3000-5000 words) that: 
+
+      - Follows the exact structure specified above.
+      - Is written in clear, beginner-friendly language.
+      - Includes practical examples along with code snippets.
+      - Defines all technical terms.
+      - Can be followed step-by-step by someone with zero experience.
+  agent: technical_writer
+
+review_and_polish_guide:
+  description: >
+    Review and improve the getting-started guide to ensure it's truly beginner friendly
+    and easy to understand.
+
+    YOUR REVIEW CRITERIA:
+
+    1. CLARITY CHECK:
+      - are there any technical jargons used without definitions?
+      - Are explanations clear to someone with zero experience?
+      - Are there any confusing sentences or paragraphs?
+      - Do analogies actually help or confuse?
+
+    2. COMPLETENESS CHECK:
+      - Does it follow the required structure completely?
+      - Are there any gaps in the learning progression?
+      - Are code examples complete and working?
+      - Are all the prerequisites listed?
+
+    3. BEGINNER-FRIENDLINESS CHECK:
+      - Can a true beginner follow this from start to finish?
+      - Are steps broken down enough?
+      - Is the tone encouraging and supportive?
+      - Are common pitfalls addressed?
+
+    4. ACCURACY CHECK:
+      - Is technical information correct?
+      - Do code examples align with the current best practices?
+      - Are troubleshooting tips accurate?
+
+    5. FORMATTING CHECK:
+      - Is the HTML formatted correctly, including the doctype, head, style, and body?
+      - Are code blocks properly marked?
+      - Are headers used consistently?
+      - Is the document well-organized?
+      - Are CSS classes applied appropriately where needed?
+
+    YOUR TASK:
+
+      1. Read through the entire guide as if you're a complete beginner.
+      2. Mark sections that are too advanced or are confusing.
+      3. Improve clarity, fix errors, enhance explanations.
+      4. Ensure that technical terms are defined before use. 
+      5. Add missing information if needed. 
+      6. Improve code examples with better comments.
+      7. Make the tone encouraging if too formal.
+      8. Verify the structure matches requirements.
+      9. Ensure no concluding statements, offers for further help, or instructions about saving files or preparing repositories are included. Only retain the well-written framework-related content.
+      10. Verify and adjust CSS if needed to ensure readability and visual appeal.
+
+    PROVIDE:
+      - The improved version of the complete guide.
+  expected_output: >
+    The polished, publication-ready getting-started guide with:
+      - All technical jargon properly defined.
+      - Clear, beginner-friendly explanations throughout.
+      - Complete, working code examples.
+      - Proper HTML formatting 
+      - Encouraging and supportive tone.
+      - No gaps in the learning progression.
+  agent: content_editor
+  output_file: ./outputs/getting_started_guide.html
